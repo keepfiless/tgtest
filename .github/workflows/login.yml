@@ -1,0 +1,38 @@
+name: Login to Telegram
+
+on:
+  workflow_dispatch:
+    inputs:
+      phone:
+        description: 'Phone number with country code (e.g., +989123456789)'
+        required: true
+        type: string
+      code:
+        description: 'SMS code (leave empty first time, fill after receiving SMS)'
+        required: false
+        type: string
+
+jobs:
+  login:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install telethon
+
+      - name: Login
+        run: python login.py "${{ github.event.inputs.phone }}" "${{ github.event.inputs.code }}"
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add session.dat phone_hash.json 2>/dev/null || true
+          git commit -m "Session update" || echo "No changes"
+          git push

@@ -1,4 +1,4 @@
-name: 02- 📥 دانلود از تلگرام
+name: 📥 دانلود از تلگرام
 
 on:
   workflow_dispatch:
@@ -42,7 +42,7 @@ jobs:
             if [ -d "$folder" ]; then
               cd "$folder"
               for file in *; do
-                if [ -f "$file" ]; then
+                if [ -f "$file" ] && [ "$file" != "README.md" ]; then
                   size=$(stat -c%s "$file")
                   if [ $size -gt 94371840 ]; then
                     echo "📦 در حال تقسیم $file ($(($size/1024/1024))MB)..."
@@ -56,6 +56,9 @@ jobs:
           done
           echo "✅ لیست فایل‌ها:"
           ls -laR
+
+      - name: 📝 بروزرسانی README پوشه‌ها
+        run: python update_folder_readme.py
 
       - name: 💾 ذخیره فایل‌های دانلود شده
         run: |

@@ -4,21 +4,29 @@ on:
   workflow_dispatch:
     inputs:
       phone:
-        description: 'Phone number with country code (e.g., +989123456789)'
+        description: 'Phone with country code (+989123456789)'
         required: true
         type: string
       code:
-        description: 'SMS code (leave empty first time, fill after receiving SMS)'
+        description: 'Code (empty=get code, "resend"=SMS/call, or enter code)'
         required: false
         type: string
+      password:
+        description: '2FA password (if enabled)'
+        required: false
+        type: string
+
 permissions:
   contents: write
-  
+
 jobs:
   login:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Pull latest
+        run: git pull origin main || git pull origin master || true
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -29,7 +37,7 @@ jobs:
         run: pip install telethon
 
       - name: Login
-        run: python login.py "${{ github.event.inputs.phone }}" "${{ github.event.inputs.code }}"
+        run: python login.py "${{ github.event.inputs.phone }}" "${{ github.event.inputs.code }}" "${{ github.event.inputs.password }}"
 
       - name: Commit changes
         run: |

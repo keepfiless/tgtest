@@ -1,4 +1,4 @@
-name: 📥 دانلود از تلگرام
+name: 02- 📥 دانلود از تلگرام
 
 on:
   workflow_dispatch:

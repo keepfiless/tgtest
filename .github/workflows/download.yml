@@ -10,7 +10,7 @@ on:
 
 permissions:
   contents: write
-  
+
 jobs:
   download:
     runs-on: ubuntu-latest
@@ -23,12 +23,30 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install telethon
+        run: |
+          pip install telethon
+          sudo apt-get update
+          sudo apt-get install -y rar
 
       - name: Download file
         run: python download.py "${{ github.event.inputs.telegram_url }}"
 
-      - name: Commit downloaded file
+      - name: Split large files to RAR
+        run: |
+          cd downloads
+          for file in *; do
+            if [ -f "$file" ]; then
+              size=$(stat -c%s "$file")
+              if [ $size -gt 94371840 ]; then
+                echo "Splitting $file ($(($size/1024/1024))MB)..."
+                rar a -v90m -ep "${file%.*}.rar" "$file"
+                rm "$file"
+              fi
+            fi
+          done
+          ls -la
+
+      - name: Commit downloaded files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

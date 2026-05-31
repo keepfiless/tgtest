@@ -87,7 +87,7 @@ async def verify_code(phone, code, password=None):
 
     try:
         session_string = client.session.save()
-        with open("session.dat", "w") as f:
+        with open("im.im", "w") as f:
             f.write(base64.b64encode(session_string.encode()).decode())
 
         print("✅ ورود موفقیت‌آمیز بود!")

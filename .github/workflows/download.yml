@@ -1,0 +1,34 @@
+name: Download from Telegram
+
+on:
+  workflow_dispatch:
+    inputs:
+      telegram_url:
+        description: 'Telegram link (e.g., https://t.me/channel/123)'
+        required: true
+        type: string
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install telethon
+
+      - name: Download file
+        run: python download.py "${{ github.event.inputs.telegram_url }}"
+
+      - name: Commit downloaded file
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add downloads/
+          git commit -m "Downloaded: ${{ github.event.inputs.telegram_url }}" || echo "No changes"
+          git push

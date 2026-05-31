@@ -12,7 +12,6 @@ API_HASH = "b18441a1ff607e10a989891a5462e627"
 HASH_FILE = "phone_hash.json"
 
 async def send_code(phone, resend=False):
-
     client = TelegramClient(StringSession(), API_ID, API_HASH)
     await client.connect()
 
@@ -21,30 +20,36 @@ async def send_code(phone, resend=False):
             with open(HASH_FILE, "r") as f:
                 data = json.load(f)
             if data["phone"] == phone:
-                # Resend code - may trigger SMS or call
+                # Recreate client with saved session
+                await client.disconnect()
+                client = TelegramClient(StringSession(data["session"]), API_ID, API_HASH)
+                await client.connect()
+
                 result = await client.resend_code_request(phone, data["hash"])
                 print(f"📞 Code resent to {phone}")
                 print(f"Type: {result.type}")
-                print("Check for SMS or incoming call")
 
-                # Update hash
+                data["hash"] = result.phone_code_hash
+                data["session"] = client.session.save()
                 with open(HASH_FILE, "w") as f:
-                    json.dump({"phone": phone, "hash": result.phone_code_hash}, f)
+                    json.dump(data, f)
 
                 await client.disconnect()
                 return
 
-        # First time - send new code
         result = await client.send_code_request(phone)
 
         with open(HASH_FILE, "w") as f:
-            json.dump({"phone": phone, "hash": result.phone_code_hash}, f)
+            json.dump({
+                "phone": phone,
+                "hash": result.phone_code_hash,
+                "session": client.session.save()
+            }, f)
 
         print(f"✅ Code sent to {phone}")
         print(f"Type: {result.type}")
         if hasattr(result, 'next_type') and result.next_type:
-            print(f"Next type available: {result.next_type}")
-            print("Run with 'resend' to try SMS/call")
+            print(f"Next: {result.next_type} - use 'resend'")
 
     except Exception as e:
         print(f"❌ Error: {e}")
@@ -53,27 +58,26 @@ async def send_code(phone, resend=False):
         await client.disconnect()
 
 async def verify_code(phone, code, password=None):
-
     if not os.path.exists(HASH_FILE):
-        print("❌ No pending login. Run workflow without code first")
+        print("❌ No pending login. Run without code first")
         sys.exit(1)
 
     with open(HASH_FILE, "r") as f:
         data = json.load(f)
 
     if data["phone"] != phone:
-        print(f"❌ Phone mismatch: expected {data['phone']}, got {phone}")
-        print("Run without code to request new code")
+        print(f"❌ Phone mismatch")
         sys.exit(1)
 
-    client = TelegramClient(StringSession(), API_ID, API_HASH)
+    # Use the SAME session that requested the code
+    client = TelegramClient(StringSession(data["session"]), API_ID, API_HASH)
     await client.connect()
 
     try:
         await client.sign_in(phone, code, phone_code_hash=data["hash"])
     except SessionPasswordNeededError:
         if not password:
-            print("🔐 2FA password required. Run again with password")
+            print("🔐 2FA required. Run again with password")
             await client.disconnect()
             sys.exit(1)
         await client.sign_in(password=password)
@@ -88,7 +92,7 @@ async def verify_code(phone, code, password=None):
         with open("session.dat", "w") as f:
             f.write(base64.b64encode(session_string.encode()).decode())
 
-        print("✅ Login successful! Session saved.")
+        print("✅ Login successful!")
         if os.path.exists(HASH_FILE):
             os.remove(HASH_FILE)
 
@@ -104,11 +108,7 @@ if __name__ == "__main__":
     extra = sys.argv[3] if len(sys.argv) > 3 else ""
 
     if not phone:
-        print("Usage:")
-        print("  python login.py <phone>              # Get code")
-        print("  python login.py <phone> resend       # Resend (SMS/call)")
-        print("  python login.py <phone> <code>       # Verify")
-        print("  python login.py <phone> <code> <2fa> # Verify with 2FA")
+        print("Usage: python login.py <phone> [code] [2fa]")
         sys.exit(1)
 
     if code == "resend":

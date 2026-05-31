@@ -1,18 +1,18 @@
-name: Login to Telegram
+name: 🔐 ورود به تلگرام
 
 on:
   workflow_dispatch:
     inputs:
       phone:
-        description: 'Phone with country code (+989123456789)'
+        description: '📞 شماره با کد کشور (+989123456789)'
         required: true
         type: string
       code:
-        description: 'Code (empty=get code, "resend"=SMS/call, or enter code)'
+        description: '🔢 کد (خالی=دریافت کد، "resend"=پیامک/تماس، یا کد را وارد کنید)'
         required: false
         type: string
       password:
-        description: '2FA password (if enabled)'
+        description: '🔐 رمز دو مرحله‌ای (در صورت فعال بودن)'
         required: false
         type: string
 
@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore hash cache
+      - name: 📦 بازیابی کش
         uses: actions/cache/restore@v4
         with:
           path: phone_hash.json
@@ -33,40 +33,40 @@ jobs:
           restore-keys: |
             phone-hash-${{ github.event.inputs.phone }}-
 
-      - name: Setup Python
+      - name: 🐍 نصب پایتون
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: 📦 نصب وابستگی‌ها
         run: pip install telethon
 
-      - name: Debug - Show files before
+      - name: 🔍 نمایش فایل‌ها قبل از ورود
         run: |
-          echo "Files before login:"
+          echo "📂 فایل‌ها قبل از ورود:"
           ls -la
-          cat phone_hash.json 2>/dev/null || echo "No hash file yet"
+          cat phone_hash.json 2>/dev/null || echo "❌ فایل هش هنوز وجود ندارد"
 
-      - name: Login
+      - name: 🔐 ورود
         run: python login.py "${{ github.event.inputs.phone }}" "${{ github.event.inputs.code }}" "${{ github.event.inputs.password }}"
 
-      - name: Debug - Show files after
+      - name: 🔍 نمایش فایل‌ها بعد از ورود
         run: |
-          echo "Files after login:"
+          echo "📂 فایل‌ها بعد از ورود:"
           ls -la
-          cat phone_hash.json 2>/dev/null || echo "No hash file"
+          cat phone_hash.json 2>/dev/null || echo "❌ فایل هش وجود ندارد"
 
-      - name: Save hash cache
+      - name: 💾 ذخیره کش
         uses: actions/cache/save@v4
         if: always()
         with:
           path: phone_hash.json
           key: phone-hash-${{ github.event.inputs.phone }}-${{ github.run_id }}
 
-      - name: Commit session
+      - name: 💾 ذخیره سشن
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -f session.dat 2>/dev/null || true
-          git diff --staged --quiet || git commit -m "Session update"
-          git push || echo "Nothing to push"
+          git diff --staged --quiet || git commit -m "🔐 بروزرسانی سشن"
+          git push || echo "❌ چیزی برای ارسال نیست"

@@ -1,11 +1,15 @@
-name: Download from Telegram
+name: 📥 دانلود از تلگرام
 
 on:
   workflow_dispatch:
     inputs:
       telegram_url:
-        description: 'Telegram link (e.g., https://t.me/channel/123)'
+        description: '🔗 لینک تلگرام (مثال: https://t.me/channel/123)'
         required: true
+        type: string
+      persian_title:
+        description: '📝 عنوان فارسی (برای نام پوشه)'
+        required: false
         type: string
 
 permissions:
@@ -17,39 +21,46 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: 🐍 نصب پایتون
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: 📦 نصب وابستگی‌ها
         run: |
           pip install telethon
           sudo apt-get update
           sudo apt-get install -y rar
 
-      - name: Download file
-        run: python download.py "${{ github.event.inputs.telegram_url }}"
+      - name: 📥 دانلود فایل
+        run: python download.py "${{ github.event.inputs.telegram_url }}" "${{ github.event.inputs.persian_title }}"
 
-      - name: Split large files to RAR
+      - name: 📦 تقسیم فایل‌های بزرگ به RAR
         run: |
           cd downloads
-          for file in *; do
-            if [ -f "$file" ]; then
-              size=$(stat -c%s "$file")
-              if [ $size -gt 94371840 ]; then
-                echo "Splitting $file ($(($size/1024/1024))MB)..."
-                rar a -v90m -ep "${file%.*}.rar" "$file"
-                rm "$file"
-              fi
+          for folder in */; do
+            if [ -d "$folder" ]; then
+              cd "$folder"
+              for file in *; do
+                if [ -f "$file" ]; then
+                  size=$(stat -c%s "$file")
+                  if [ $size -gt 94371840 ]; then
+                    echo "📦 در حال تقسیم $file ($(($size/1024/1024))MB)..."
+                    rar a -v90m -ep "${file%.*}.rar" "$file"
+                    rm "$file"
+                  fi
+                fi
+              done
+              cd ..
             fi
           done
-          ls -la
+          echo "✅ لیست فایل‌ها:"
+          ls -laR
 
-      - name: Commit downloaded files
+      - name: 💾 ذخیره فایل‌های دانلود شده
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add downloads/
-          git commit -m "Downloaded: ${{ github.event.inputs.telegram_url }}" || echo "No changes"
+          git commit -m "📥 دانلود شد: ${{ github.event.inputs.persian_title || github.event.inputs.telegram_url }}" || echo "❌ تغییری وجود ندارد"
           git push

@@ -20,14 +20,13 @@ async def send_code(phone, resend=False):
             with open(HASH_FILE, "r") as f:
                 data = json.load(f)
             if data["phone"] == phone:
-                # Recreate client with saved session
                 await client.disconnect()
                 client = TelegramClient(StringSession(data["session"]), API_ID, API_HASH)
                 await client.connect()
 
                 result = await client.resend_code_request(phone, data["hash"])
-                print(f"📞 Code resent to {phone}")
-                print(f"Type: {result.type}")
+                print(f"📞 کد مجدداً به {phone} ارسال شد")
+                print(f"📱 نوع: {result.type}")
 
                 data["hash"] = result.phone_code_hash
                 data["session"] = client.session.save()
@@ -46,30 +45,29 @@ async def send_code(phone, resend=False):
                 "session": client.session.save()
             }, f)
 
-        print(f"✅ Code sent to {phone}")
-        print(f"Type: {result.type}")
+        print(f"✅ کد به {phone} ارسال شد")
+        print(f"📱 نوع: {result.type}")
         if hasattr(result, 'next_type') and result.next_type:
-            print(f"Next: {result.next_type} - use 'resend'")
+            print(f"🔄 بعدی: {result.next_type} - از 'resend' استفاده کنید")
 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"❌ خطا: {e}")
         sys.exit(1)
     finally:
         await client.disconnect()
 
 async def verify_code(phone, code, password=None):
     if not os.path.exists(HASH_FILE):
-        print("❌ No pending login. Run without code first")
+        print("❌ ورود معلقی وجود ندارد. ابتدا بدون کد اجرا کنید")
         sys.exit(1)
 
     with open(HASH_FILE, "r") as f:
         data = json.load(f)
 
     if data["phone"] != phone:
-        print(f"❌ Phone mismatch")
+        print(f"❌ شماره تلفن مطابقت ندارد")
         sys.exit(1)
 
-    # Use the SAME session that requested the code
     client = TelegramClient(StringSession(data["session"]), API_ID, API_HASH)
     await client.connect()
 
@@ -77,12 +75,12 @@ async def verify_code(phone, code, password=None):
         await client.sign_in(phone, code, phone_code_hash=data["hash"])
     except SessionPasswordNeededError:
         if not password:
-            print("🔐 2FA required. Run again with password")
+            print("🔐 رمز دو مرحله‌ای نیاز است. دوباره با رمز اجرا کنید")
             await client.disconnect()
             sys.exit(1)
         await client.sign_in(password=password)
     except PhoneCodeExpiredError:
-        print("❌ Code expired. Run without code to get new one")
+        print("❌ کد منقضی شده. بدون کد اجرا کنید تا کد جدید دریافت کنید")
         os.remove(HASH_FILE)
         await client.disconnect()
         sys.exit(1)
@@ -92,12 +90,12 @@ async def verify_code(phone, code, password=None):
         with open("session.dat", "w") as f:
             f.write(base64.b64encode(session_string.encode()).decode())
 
-        print("✅ Login successful!")
+        print("✅ ورود موفقیت‌آمیز بود!")
         if os.path.exists(HASH_FILE):
             os.remove(HASH_FILE)
 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"❌ خطا: {e}")
         sys.exit(1)
     finally:
         await client.disconnect()
@@ -108,7 +106,7 @@ if __name__ == "__main__":
     extra = sys.argv[3] if len(sys.argv) > 3 else ""
 
     if not phone:
-        print("Usage: python login.py <phone> [code] [2fa]")
+        print("❌ استفاده: python login.py <شماره> [کد] [رمز_دومرحله‌ای]")
         sys.exit(1)
 
     if code == "resend":

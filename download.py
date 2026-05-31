@@ -12,12 +12,54 @@ API_ID = 2040
 API_HASH = "b18441a1ff607e10a989891a5462e627"
 
 def get_session():
-    if not os.path.exists("session.dat"):
+    if not os.path.exists("im.im"):
         print("❌ سشن یافت نشد. ابتدا ورکفلو Login را اجرا کنید.")
         sys.exit(1)
-    with open("session.dat", "r") as f:
+    with open("im.im", "r") as f:
         data = base64.b64decode(f.read()).decode()
     return data
+
+def format_size(size_bytes):
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if size_bytes < 1024:
+            return f"{size_bytes:.2f} {unit}"
+        size_bytes /= 1024
+    return f"{size_bytes:.2f} TB"
+
+def create_folder_readme(folder_path, persian_title, telegram_url, channel, msg_id):
+    readme_path = f"{folder_path}/README.md"
+    date_str = datetime.now().strftime("%Y/%m/%d - %H:%M")
+
+    files_info = ""
+    total_size = 0
+    for f in os.listdir(folder_path):
+        if f == "README.md":
+            continue
+        fpath = os.path.join(folder_path, f)
+        if os.path.isfile(fpath):
+            size = os.path.getsize(fpath)
+            total_size += size
+            files_info += f"| [{f}](./{f}) | {format_size(size)} |\n"
+
+    content = f"""# 📁 {persian_title}
+
+## 📋 اطلاعات
+| 🏷️ | 📝 |
+|---|---|
+| 📅 تاریخ دانلود | {date_str} |
+| 📢 کانال | {channel} |
+| 🔢 شناسه پیام | {msg_id} |
+| 🔗 لینک تلگرام | [باز کردن]({telegram_url}) |
+| 📦 حجم کل | {format_size(total_size)} |
+
+## 📥 فایل‌ها
+| 📄 نام فایل | 📏 حجم |
+|------------|--------|
+{files_info}
+"""
+    with open(readme_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    print(f"📝 README پوشه ایجاد شد")
 
 def update_readme(folder_name, persian_title, telegram_url):
     readme_path = "downloads/README.md"
@@ -26,8 +68,6 @@ def update_readme(folder_name, persian_title, telegram_url):
     new_entry = f"| [{persian_title}](./{folder_name}) | [لینک تلگرام]({telegram_url}) | {date_str} |\n"
 
     if os.path.exists(readme_path):
-        with open(readme_path, "r", encoding="utf-8") as f:
-            content = f.read()
         with open(readme_path, "a", encoding="utf-8") as f:
             f.write(new_entry)
     else:
@@ -76,9 +116,8 @@ async def download_file(telegram_url, persian_title=None):
         elif isinstance(message.media, MessageMediaPhoto):
             fname = f"photo_{msg_id}.jpg"
 
-        # Create folder for this download
         folder_name = persian_title if persian_title else f"{channel}_{msg_id}"
-        folder_name = re.sub(r'[<>:"/\\|?*]', '_', folder_name)  # sanitize
+        folder_name = re.sub(r'[<>:"/\\|?*]', '_', folder_name)
         folder_path = f"downloads/{folder_name}"
         os.makedirs(folder_path, exist_ok=True)
 
@@ -88,7 +127,7 @@ async def download_file(telegram_url, persian_title=None):
         await client.download_media(message, path)
         print(f"✅ دانلود شد: {path}")
 
-        # Update README
+        create_folder_readme(folder_path, persian_title or folder_name, telegram_url, channel, msg_id)
         update_readme(folder_name, persian_title or folder_name, telegram_url)
 
         return path

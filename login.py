@@ -3,7 +3,6 @@ import os
 import json
 import base64
 import asyncio
-import subprocess
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 from telethon.errors import SessionPasswordNeededError, PhoneCodeExpiredError
@@ -12,14 +11,7 @@ API_ID = 2040
 API_HASH = "b18441a1ff607e10a989891a5462e627"
 HASH_FILE = "phone_hash.json"
 
-def git_pull():
-    try:
-        subprocess.run(["git", "pull"], check=True, capture_output=True)
-    except:
-        pass
-
 async def send_code(phone, resend=False):
-    git_pull()
 
     client = TelegramClient(StringSession(), API_ID, API_HASH)
     await client.connect()
@@ -61,7 +53,6 @@ async def send_code(phone, resend=False):
         await client.disconnect()
 
 async def verify_code(phone, code, password=None):
-    git_pull()
 
     if not os.path.exists(HASH_FILE):
         print("❌ No pending login. Run workflow without code first")

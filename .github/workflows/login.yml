@@ -1,4 +1,4 @@
-name: 01- 🔐 ورود به تلگرام
+name: 🔐 ورود به تلگرام
 
 on:
   workflow_dispatch:
@@ -67,6 +67,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f session.dat 2>/dev/null || true
+          git add -f im.im 2>/dev/null || true
           git diff --staged --quiet || git commit -m "🔐 بروزرسانی سشن"
           git push || echo "❌ چیزی برای ارسال نیست"
